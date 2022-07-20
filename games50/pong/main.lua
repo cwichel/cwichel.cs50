@@ -37,12 +37,19 @@ VIRTUAL_HEIGHT  = 243
 --[[
 Game tunables
 ]]
+-- Graphic config
 BALL_SIZE       = 4
 PADDLE_WIDTH    = 5
 PADDLE_HEIGHT   = 20
+-- Game config
 PADDLE_SPEED    = 200
 SPEED_FACTOR    = 1.03
-WINNING_SCORE   = 5
+WINNING_SCORE   = 10
+-- AI confing
+PLAYER1_AI      = true
+PLAYER1_AI_LVL  = 0.75
+PLAYER2_AI      = true
+PLAYER2_AI_LVL  = 0.65
 
 --[[----------------------------------------------------------------------------
 Runs when the game first starts up, only once; used to initialize the game
@@ -118,21 +125,8 @@ the last frame.
 ]]
 function love.update(dt)
   -- Player movement update ---------------------
-  -- Player 1 movement
-  if love.keyboard.isDown("w") or love.keyboard.isDown("s") then
-    player1.dy = love.keyboard.isDown("w") and -PADDLE_SPEED or PADDLE_SPEED
-  else
-    player1.dy = 0
-  end
-  player1:update(dt)
-
-  -- Player 2 movement
-  if love.keyboard.isDown("up") or love.keyboard.isDown("down") then
-    player2.dy = love.keyboard.isDown("up") and -PADDLE_SPEED or PADDLE_SPEED
-  else
-    player2.dy = 0
-  end
-  player2:update(dt)
+  player1Update(dt)
+  player2Update(dt)
 
   -- Ball movement update -----------------------
   if state == "serve" then
@@ -302,4 +296,79 @@ function displayScore()
   love.graphics.setFont(fonts["score"])
   love.graphics.printf(tostring(score1), (VIRTUAL_WIDTH / 2) - 50, (VIRTUAL_HEIGHT / 3), 50, "center")
   love.graphics.printf(tostring(score2), (VIRTUAL_WIDTH / 2), (VIRTUAL_HEIGHT / 3), 50, "center")
+end
+
+--[[----------------------------------------------------------------------------
+Player 1 update logic
+]]
+function player1Update(dt)
+  if PLAYER1_AI then
+    -- Use AI to define how to move
+    player1.dy = playerAI(player1, PLAYER1_AI_LVL, true)
+
+  else
+    -- Act based on user input
+    if love.keyboard.isDown("w") or love.keyboard.isDown("s") then
+      player1.dy = love.keyboard.isDown("w") and -PADDLE_SPEED or PADDLE_SPEED
+    else
+      player1.dy = 0
+    end
+  end
+
+  -- Update paddle
+  player1:update(dt)
+end
+
+--[[----------------------------------------------------------------------------
+Player 2 update logic
+]]
+function player2Update(dt)
+  if PLAYER2_AI then
+    -- Use AI to define how to move
+    player2.dy = playerAI(player2, PLAYER2_AI_LVL, false)
+
+  else
+    -- Act based on user input
+    if love.keyboard.isDown("up") or love.keyboard.isDown("down") then
+      player2.dy = love.keyboard.isDown("up") and -PADDLE_SPEED or PADDLE_SPEED
+    else
+      player2.dy = 0
+    end
+  end
+
+  -- Update paddle
+  player2:update(dt)
+end
+
+--[[----------------------------------------------------------------------------
+Simple chaser AIe pong players. This AI makes the paddle to follow the ball if
+the following conditions are met:
+  - The ball is coming to the paddle.
+  - The ball can be "seen" by the paddle.
+  - The ball is outside the paddle surface.
+]]
+function playerAI(paddle, factor, sign)
+  --[[
+  - The ball is comming when the velocity sign match the expected.
+  - The ball is seen if the distance is smaller than a portion of the window
+    width
+  ]]
+  is_coming = (ball.dx < 0) == sign
+  is_seen   = math.abs(ball.x - paddle.x) <= (factor * WINDOW_WIDTH)
+
+  -- Only process if required
+  if (is_seen and is_coming) then
+    -- Get center positions
+    bc = ball.y + (BALL_SIZE / 2)
+    pc = paddle.y + (PADDLE_HEIGHT / 2)
+    dc = (bc - pc)
+
+    -- Move only if outside limits
+    if (math.abs(dc) >= (PADDLE_HEIGHT / 2)) then
+      return (dc >= 0) and PADDLE_SPEED or -PADDLE_SPEED
+    end
+  end
+
+  -- No movement required
+  return 0
 end
