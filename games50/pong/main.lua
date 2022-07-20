@@ -341,8 +341,8 @@ function player2Update(dt)
 end
 
 --[[----------------------------------------------------------------------------
-Simple chaser AIe pong players. This AI makes the paddle to follow the ball if
-the following conditions are met:
+Simple chaser AI for pong players. This AI makes the paddle to follow the ball
+if the following conditions are met:
   - The ball is coming to the paddle.
   - The ball can be "seen" by the paddle.
   - The ball is outside the paddle surface.
